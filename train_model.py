@@ -16,7 +16,7 @@ with open(doodles_list_file, "r") as f:
     doodles_to_train = [line.strip() for line in f.readlines()]
 
 def preprocess_doodle(drawing, max_strokes=100):
-    strokes = np.zeros((max_strokes, 3)) 
+    strokes = np.zeros((max_strokes, 3))
     time_step = 0
     idx = 0
     
@@ -45,7 +45,7 @@ for label_idx, doodle in enumerate(doodles_to_train):
 X = np.array(X)
 y = np.array(y)
 
-X[:, :, :2] /= np.max(X[:, :, :2]) 
+X[:, :, :2] /= np.max(X[:, :, :2])
 
 def split_data(X, y, percentage=0.2):
     data_size = len(X)
@@ -62,7 +62,7 @@ def split_data(X, y, percentage=0.2):
     
     return X_train, X_test, y_train, y_test
 
-train_percentage = 0.8  
+train_percentage = 0.8
 
 X_train, X_test, y_train, y_test = split_data(X, y, train_percentage)
 
@@ -70,17 +70,26 @@ train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(64)
 test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(64).prefetch(tf.data.AUTOTUNE)
 
 model = keras.Sequential([
-    layers.LSTM(64, return_sequences=True, input_shape=(100, 3)),  
-    layers.LSTM(32),  
-    layers.Dense(32, activation="relu"), 
+    layers.LSTM(256, return_sequences=True, input_shape=(100, 3), kernel_regularizer=keras.regularizers.l2(0.01)),
+    layers.Dropout(0.3),
+    layers.LSTM(128, kernel_regularizer=keras.regularizers.l2(0.01)),
+    layers.Dropout(0.3),
+    layers.Dense(128, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01)),
+    layers.Dropout(0.3),
     layers.Dense(len(doodles_to_train), activation="softmax")
 ])
 
-model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+initial_learning_rate = 0.001
+lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
+)
 
-early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
+optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
+model.compile(optimizer=optimizer, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
-model.fit(train_dataset, epochs=5, batch_size=64, validation_data=test_dataset, callbacks=[early_stopping])
+early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
+
+model.fit(train_dataset, epochs=20, batch_size=64, validation_data=test_dataset, callbacks=[early_stopping])
 
 model_path = os.path.join(models_dir, "doodle_model.h5")
 model.save(model_path)
