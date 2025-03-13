@@ -62,7 +62,7 @@ def split_data(X, y, percentage=0.2):
     
     return X_train, X_test, y_train, y_test
 
-train_percentage = 0.8
+train_percentage = 1.0
 
 X_train, X_test, y_train, y_test = split_data(X, y, train_percentage)
 
@@ -89,7 +89,7 @@ model.compile(optimizer=optimizer, loss="sparse_categorical_crossentropy", metri
 
 early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
 
-model.fit(train_dataset, epochs=20, batch_size=64, validation_data=test_dataset, callbacks=[early_stopping])
+model.fit(train_dataset, epochs=32, batch_size=64, validation_data=test_dataset, callbacks=[early_stopping])
 
 model_path = os.path.join(models_dir, "doodle_model.h5")
 model.save(model_path)
