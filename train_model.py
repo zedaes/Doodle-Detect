@@ -93,4 +93,5 @@ model.fit(train_dataset, epochs=32, batch_size=64, validation_data=test_dataset,
 
 model_path = os.path.join(models_dir, "doodle_model.h5")
 model.save(model_path)
+
 print(f"Model saved to {model_path}")
